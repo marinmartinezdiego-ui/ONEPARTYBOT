@@ -171,13 +171,12 @@ function isActivationMessage(text) {
  * Dispara el worker para procesar la cola del teléfono
  */
 async function triggerWorker(phone, deviceId) {
-  const baseUrl = process.env.SITE_URL 
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://onepartybot.vercel.app');
+  // SIEMPRE usar la URL fija del proyecto, NO la URL temporal del deploy
+  // (las URLs temporales están protegidas por auth)
+  const baseUrl = 'https://onepartybot.vercel.app';
   
   console.log('Triggering worker at:', `${baseUrl}/api/worker`, 'for phone:', phone);
   
-  // Disparar worker SIN esperar respuesta (fire-and-forget)
-  // Pero esperamos a que el fetch se inicie antes de retornar
   const workerRes = await fetch(`${baseUrl}/api/worker`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-internal-token': process.env.INTERNAL_TOKEN || 'dev' },

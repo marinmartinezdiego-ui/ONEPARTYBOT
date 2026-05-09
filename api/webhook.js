@@ -1,161 +1,147 @@
-// Worker - procesa la cola de mensajes de un teléfono
-// Es atómico (un solo worker por teléfono a la vez gracias al lock)
+// API endpoint que recibe los webhooks de Wassenger
+// Encola el mensaje y dispara el worker (con bypass de Deployment Protection)
 
-import { drainQueue, acquireLock, releaseLock } from '../lib/upstash.js';
-import { getConversation, saveConversation, log } from '../lib/supabase.js';
-import { sendText, sendImage, sendTyping, notifyHuman } from '../lib/wassenger.js';
-import { callClaude, parseClaudeResponse } from '../lib/claude.js';
-import { executeTool } from '../lib/tools.js';
+import { pushMessage, isMessageSeen, markMessageSeen } from '../lib/upstash.js';
+import { isIgnoredPhone, getConversation, log, updateConversation } from '../lib/supabase.js';
+import { sendText, notifyHuman } from '../lib/wassenger.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   
-  const internalToken = req.headers['x-internal-token'];
-  if (internalToken !== (process.env.INTERNAL_TOKEN || 'dev')) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    await processWebhook(req.body);
+  } catch (err) {
+    console.error('Error en webhook:', err);
   }
   
-  const { phone, deviceId } = req.body || {};
-  if (!phone) {
-    return res.status(400).json({ error: 'phone required' });
-  }
-  
-  res.status(200).json({ ok: true });
-  
-  processQueue(phone, deviceId).catch(err => {
-    console.error(`Error procesando cola de ${phone}:`, err);
-    log(phone, 'worker_error', { error: err.message }).catch(() => {});
-  });
+  return res.status(200).json({ ok: true });
 }
 
-async function processQueue(phone, deviceId) {
-  await new Promise(r => setTimeout(r, 1500));
+async function processWebhook(body) {
+  if (!body || body.event !== 'message:in:new') return;
   
-  const gotLock = await acquireLock(phone, 60);
-  if (!gotLock) {
-    await log(phone, 'lock_busy', {});
+  const msg = body.data;
+  const device = body.device;
+  if (!msg) return;
+  
+  if (msg.fromMe === true) {
+    const rawTo = msg.to || msg.chatId || '';
+    const targetPhone = rawTo.replace(/@c\.us$/, '').replace(/@s\.whatsapp\.net$/, '');
+    if (targetPhone && !targetPhone.includes('g.us')) {
+      const pausedUntil = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+      await updateConversation(targetPhone, { paused_until: pausedUntil }).catch(() => {});
+      await log(targetPhone, 'manual_pause', { until: pausedUntil });
+    }
     return;
   }
   
-  try {
-    const messages = await drainQueue(phone);
-    if (messages.length === 0) {
-      await log(phone, 'empty_queue', {});
-      return;
-    }
-    
-    await log(phone, 'processing', { count: messages.length });
-    
-    const convo = await getConversation(phone);
-    const combinedText = messages.map(m => m.text).join('\n');
-    const lastMsgId = messages[messages.length - 1].id;
-    
-    await sendTyping(phone, deviceId);
-    
-    convo.activated = true;
-    convo.last_msg_id = lastMsgId;
-    convo.messages.push({ role: 'user', content: combinedText });
-    
-    if (convo.messages.length > 20) {
-      convo.messages = convo.messages.slice(-20);
-    }
-    
-    let response = await callClaude(convo.messages, { customerData: convo.customer_data });
-    await log(phone, 'claude_call', { 
-      model: response.model, 
-      stopReason: response.stopReason,
-      inputTokens: response.usage?.input_tokens,
-      outputTokens: response.usage?.output_tokens
-    });
-    
-    let parsed = parseClaudeResponse(response);
-    let textsToSend = [];
-    let imagesToSend = [];
-    let actionsToDo = [];
-    
-    let iterations = 0;
-    while (response.stopReason === 'tool_use' && iterations < 5) {
-      iterations++;
-      
-      if (parsed.text) textsToSend.push(parsed.text);
-      convo.messages.push({ role: 'assistant', content: response.content });
-      
-      const toolResults = [];
-      for (const tool of parsed.tools) {
-        await log(phone, 'tool_call', { name: tool.name, input: tool.input });
-        const result = await executeTool(tool.name, tool.input, { phone, deviceId, customerMsg: combinedText });
-        await log(phone, 'tool_result', { name: tool.name, ok: result.ok });
-        
-        if (result.accion === 'enviar_imagen') {
-          imagesToSend.push(result.url);
-        } else if (result.accion === 'enviar_pago') {
-          textsToSend.push(result.mensaje);
-        } else if (result.accion === 'avisar_humano') {
-          actionsToDo.push({ type: 'avisar_humano', motivo: result.motivo, respuesta: result.respuesta_al_cliente });
-        } else if (result.accion === 'cerrar') {
-          actionsToDo.push({ type: 'cerrar' });
-        }
-        
-        toolResults.push({
-          type: 'tool_result',
-          tool_use_id: tool.id,
-          content: JSON.stringify(result)
-        });
-      }
-      
-      convo.messages.push({ role: 'user', content: toolResults });
-      response = await callClaude(convo.messages, { customerData: convo.customer_data });
-      parsed = parseClaudeResponse(response);
-    }
-    
-    if (parsed.text) textsToSend.push(parsed.text);
-    if (response.content) {
-      convo.messages.push({ role: 'assistant', content: response.content });
-    }
-    
-    const previousAssistantMsgs = convo.messages.slice(0, -1).filter(m => m.role === 'assistant');
-    const alreadyGreeted = previousAssistantMsgs.some(m => {
-      const c = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
-      return c.includes('Soy Diego de ONEPARTY');
-    });
-    
-    textsToSend = textsToSend.map(t => {
-      if (alreadyGreeted && t.includes('Soy Diego de ONEPARTY')) {
-        return t.replace(/¡Hola!\s*🎉?\s*Soy Diego de ONEPARTY[^]*?(personas sois|sois)\s*🙌?\s*/i, '').trim();
-      }
-      return t;
-    }).filter(t => t.length > 0);
-    
-    for (const text of textsToSend) {
-      const cleanText = text.replace(/\n{3,}/g, '\n\n').trim();
-      if (cleanText) await sendText(phone, cleanText, deviceId);
-    }
-    
-    for (const imageUrl of imagesToSend) {
-      await sendImage(phone, imageUrl, deviceId);
-    }
-    
-    for (const action of actionsToDo) {
-      if (action.type === 'avisar_humano') {
-        const pausedUntil = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
-        convo.paused_until = pausedUntil;
-        await notifyHuman(action.motivo, phone, combinedText, deviceId);
-        await log(phone, 'human_alerted', { motivo: action.motivo });
-      } else if (action.type === 'cerrar') {
-        convo.closed = true;
-        await log(phone, 'closed', {});
-      }
-    }
-    
-    await saveConversation(convo);
-    
-  } finally {
-    await releaseLock(phone);
+  const rawFrom = msg.from || msg.chatId || '';
+  if (rawFrom.includes('@g.us')) return;
+  
+  const phone = rawFrom.replace(/@c\.us$/, '').replace(/@s\.whatsapp\.net$/, '');
+  if (!phone) return;
+  
+  const deviceId = (device && device.id) || msg.deviceId;
+  
+  if (msg.id && await isMessageSeen(msg.id)) {
+    await log(phone, 'duplicate_ignored', { msgId: msg.id });
+    return;
   }
+  if (msg.id) await markMessageSeen(msg.id);
+  
+  const msgType = msg.type || 'chat';
+  
+  if (['image', 'video', 'sticker', 'document', 'vcard', 'contact', 'location'].includes(msgType)) {
+    await log(phone, 'media_ignored', { type: msgType });
+    return;
+  }
+  
+  if (['audio', 'ptt', 'voice'].includes(msgType)) {
+    const convo = await getConversation(phone);
+    if (convo.closed) return;
+    if (convo.audio_replied_at && (Date.now() - new Date(convo.audio_replied_at).getTime() < 30000)) return;
+    
+    const replies = [
+      'Lo siento, no puedo escuchar audios 😅 Escríbeme y te ayudo enseguida 🙌',
+      'No puedo escuchar audios desde aquí 🙈 ¿Me lo escribes?',
+      'Audios no, pero por escrito sí te leo 📝 ¿Qué necesitas?',
+      'No me llegan los audios 😬 Mándamelo escrito y lo vemos',
+      'Ahora mismo no puedo escuchar audios 🎧 Escríbemelo y te respondo'
+    ];
+    const reply = replies[Math.floor(Math.random() * replies.length)];
+    
+    await sendText(phone, reply, deviceId);
+    await updateConversation(phone, { audio_replied_at: new Date().toISOString() });
+    await log(phone, 'audio_replied', {});
+    return;
+  }
+  
+  const text = msg.body || msg.text || '';
+  if (!text) return;
+  
+  const convo = await getConversation(phone);
+  
+  if (convo.closed) { await log(phone, 'closed_ignored', {}); return; }
+  if (convo.paused_until && new Date(convo.paused_until) > new Date()) {
+    await log(phone, 'paused_ignored', {}); return;
+  }
+  if (await isIgnoredPhone(phone)) { await log(phone, 'old_chat_ignored', {}); return; }
+  if (!convo.activated && convo.messages && convo.messages.length > 0) {
+    await log(phone, 'preexisting_ignored', {}); return;
+  }
+  if (!convo.activated && !isActivationMessage(text)) {
+    await log(phone, 'not_activated', { text: text.substring(0, 50) }); return;
+  }
+  
+  const queueMsg = {
+    id: msg.id || `${Date.now()}-${Math.random()}`,
+    text, type: msgType, timestamp: Date.now(), deviceId
+  };
+  
+  await pushMessage(phone, queueMsg);
+  await log(phone, 'queued', { msgId: queueMsg.id });
+  
+  await triggerWorker(phone, deviceId);
+}
+
+function isActivationMessage(text) {
+  const normalized = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const words = ['despedida', 'soltero', 'soltera', 'oneparty', 'one party'];
+  if (words.some(w => normalized.includes(w))) return true;
+  const phrases = [
+    'precio', 'informacion', 'cuanto cuesta', 'cuanto vale',
+    'pack basic', 'pack mix', 'pack a full', 'pack premium',
+    'organizar despedida', 'reservar despedida'
+  ];
+  return phrases.some(p => normalized.includes(p));
+}
+
+async function triggerWorker(phone, deviceId) {
+  const baseUrl = 'https://onepartybot.vercel.app';
+  const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  
+  // Añadir el bypass secret como query param para saltarse la Deployment Protection
+  const workerUrl = bypassSecret 
+    ? `${baseUrl}/api/worker?x-vercel-protection-bypass=${bypassSecret}`
+    : `${baseUrl}/api/worker`;
+  
+  console.log('Triggering worker for phone:', phone, 'bypass:', !!bypassSecret);
+  
+  const workerRes = await fetch(workerUrl, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json', 
+      'x-internal-token': process.env.INTERNAL_TOKEN || 'dev',
+      'x-vercel-protection-bypass': bypassSecret || ''
+    },
+    body: JSON.stringify({ phone, deviceId })
+  });
+  
+  console.log('Worker response status:', workerRes.status);
 }
 
 export const config = {
-  maxDuration: 60
+  maxDuration: 30
 };

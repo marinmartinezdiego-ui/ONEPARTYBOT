@@ -1,12 +1,12 @@
 // Worker - procesa la cola de mensajes de un teléfono
 // Es atómico (un solo worker por teléfono a la vez gracias al lock)
-
+ 
 import { drainQueue, acquireLock, releaseLock } from '../lib/upstash.js';
 import { getConversation, saveConversation, log } from '../lib/supabase.js';
 import { sendText, sendImage, sendTyping, notifyHuman } from '../lib/wassenger.js';
 import { callClaude, parseClaudeResponse } from '../lib/claude.js';
 import { executeTool } from '../lib/tools.js';
-
+ 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -31,8 +31,11 @@ export default async function handler(req, res) {
     log(phone, 'worker_error', { error: err.message }).catch(() => {});
   });
 }
-
+ 
 async function processQueue(phone, deviceId) {
+  // Debounce: esperar 1.5s para agrupar mensajes consecutivos
+  await new Promise(r => setTimeout(r, 1500));
+  
   // Adquirir lock atómico (otros workers para este teléfono esperan)
   const gotLock = await acquireLock(phone, 60);
   if (!gotLock) {
@@ -191,7 +194,7 @@ async function processQueue(phone, deviceId) {
     await releaseLock(phone);
   }
 }
-
+ 
 export const config = {
   maxDuration: 60
 };

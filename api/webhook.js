@@ -173,17 +173,25 @@ async function triggerWorker(phone, deviceId) {
   await new Promise(r => setTimeout(r, 1500));
   
   // Llamar al endpoint del worker
-  const baseUrl = process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}` 
-    : process.env.SITE_URL || 'http://localhost:3000';
+  // VERCEL_URL siempre incluye el host pero a veces es la URL temporal del deploy
+  // Mejor usar la URL fija del proyecto
+  const baseUrl = process.env.SITE_URL 
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://onepartybot.vercel.app');
   
-  await fetch(`${baseUrl}/api/worker`, {
+  console.log('Triggering worker at:', `${baseUrl}/api/worker`, 'for phone:', phone);
+  
+  const workerRes = await fetch(`${baseUrl}/api/worker`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-internal-token': process.env.INTERNAL_TOKEN || 'dev' },
     body: JSON.stringify({ phone, deviceId })
   }).catch(err => {
     console.error('Error calling worker:', err);
+    return null;
   });
+  
+  if (workerRes) {
+    console.log('Worker response status:', workerRes.status);
+  }
 }
 
 export const config = {

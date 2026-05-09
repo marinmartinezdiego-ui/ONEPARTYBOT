@@ -1,0 +1,10 @@
+{
+  "name": "oneparty-bot",
+  "version": "2.0.0",
+  "description": "Bot Diego para ONEPARTY - despedidas en Gandía",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  }
+}

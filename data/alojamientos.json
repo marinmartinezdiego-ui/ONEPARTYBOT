@@ -1,0 +1,75 @@
+{
+  "fijo": {
+    "hostal": {
+      "nombre": "Hostal",
+      "max_personas": null,
+      "precios": {
+        "ene_abr": 29,
+        "mayo": 39,
+        "jun_sem12": 39,
+        "jun_sem3": 69,
+        "jun_sem4": 79,
+        "jul_ago": 99,
+        "sep_dic": 59
+      }
+    },
+    "bungalow": {
+      "nombre": "Bungalow",
+      "max_personas": 5,
+      "precios": {
+        "ene_abr": 45,
+        "mayo": 49,
+        "jun_sem12": 65,
+        "jun_sem3": 125,
+        "jun_sem4": 125,
+        "jul_ago": 135,
+        "sep_dic": 65
+      }
+    },
+    "apartamento": {
+      "nombre": "Apartamento",
+      "max_personas": null,
+      "ubicacion": "Puerto Playa Gandía",
+      "precios": {
+        "ene_abr": 49,
+        "mayo": 59,
+        "jun_sem12": 69,
+        "jun_sem3": 89,
+        "jun_sem4": 109,
+        "jul_ago": 129,
+        "sep_dic": 99
+      }
+    },
+    "hotel": {
+      "nombre": "Hotel",
+      "max_personas": null,
+      "precios": {
+        "ene_abr": 59,
+        "mayo": 59,
+        "jun_sem12": 99,
+        "jun_sem3": 119,
+        "jun_sem4": 119,
+        "jul_ago": 149,
+        "sep_dic": 129
+      }
+    }
+  },
+  "variable": {
+    "chalet": {
+      "nombre": "Chalet Kent / Villa",
+      "min_personas": 12,
+      "max_personas": 20,
+      "ubicacion": "Bellreguard",
+      "senal": 900,
+      "tarifas": {
+        "ene_abr": { "base": 1000, "extra_pers": 100 },
+        "mayo": { "base": 1500, "extra_pers": 120 },
+        "jun_sem12": { "base": 2000, "extra_pers": 120 },
+        "jun_sem3": { "base": 2000, "extra_pers": 120 },
+        "jun_sem4": { "base": 2000, "extra_pers": 120 },
+        "jul_ago": { "base": 2000, "extra_pers": 150 },
+        "sep_dic": { "base": 1500, "extra_pers": 120 }
+      }
+    }
+  }
+}

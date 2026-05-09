@@ -1,0 +1,59 @@
+{
+  "actividades": {
+    "escape_room": { "nombre": "Escape Room", "suplemento": 0, "notas": "Junto centro comercial, necesita coche" },
+    "archery_tag": { "nombre": "Archery Tag", "suplemento": 0 },
+    "tiro_arco": { "nombre": "Tiro con Arco", "suplemento": 0 },
+    "lucha_sumo": { "nombre": "Lucha Sumo", "suplemento": 0 },
+    "futbolin_humano": { "nombre": "Futbolín Humano", "suplemento": 0 },
+    "sumo_hinchable": { "nombre": "Sumo Hinchable", "suplemento": 0 },
+    "velero": { "nombre": "Velero Deportivo", "suplemento": 0 },
+    "kayak": { "nombre": "Kayak", "suplemento": 0 },
+    "padel_surf": { "nombre": "Padel Surf", "suplemento": 0 },
+    "spa": { "nombre": "Spa", "suplemento": 10 },
+    "bubble": { "nombre": "Bubble", "suplemento": 5 },
+    "karts": { "nombre": "Karts", "suplemento": 5 },
+    "paintball": { "nombre": "Paintball", "suplemento": 5 },
+    "banana": { "nombre": "Banana", "suplemento": 5 },
+    "humor_amarillo": { "nombre": "Humor Amarillo", "suplemento": 8, "notas": "Actividades con agua y minijuegos, muy completa" },
+    "barco": { 
+      "nombre": "Barco", 
+      "suplemento": 15, 
+      "notas": "Solo sábados. 1h30min. 100 plazas. Con otros grupos. Música.",
+      "horarios": ["11h", "12:30h", "14h (incluye comida)"]
+    },
+    "caballo": { "nombre": "Paseo a Caballo", "suplemento": 30 },
+    "motos_agua": { 
+      "nombre": "Motos de Agua", 
+      "suplemento": 25, 
+      "notas": "40 minutos. Se cogen en pareja. Si número impar, se necesita una moto extra.",
+      "calculo_especial": "motos_agua"
+    }
+  },
+  "comidas": {
+    "meraki": { "nombre": "Meraki", "suplemento": 0, "notas": "Hamburguesa en el puerto" },
+    "la_finca": { "nombre": "La Finca", "suplemento": 5, "notas": "Barra libre cerveza/sangría + 1 copa. Pool Party y Fiesta Espuma desde mayo en VayaTela" },
+    "chiringuito": { "nombre": "Chiringuito Playa", "suplemento": 15, "notas": "Paella + entrantes frente al mar. 1 bebida + 1 copa. Tardeo con descuento" }
+  },
+  "cenas": {
+    "meraki": { "nombre": "Meraki", "suplemento": 0 },
+    "bestias_21": { "nombre": "Los Bestias 21h", "suplemento": 5, "notas": "Animación + barra libre. Hasta 22:30" },
+    "bestias_23": { "nombre": "Los Bestias 23h", "suplemento": 9, "notas": "Animación + barra libre + 1 copa" }
+  },
+  "extras": {
+    "copas_disco": { "nombre": "2 copas + entrada discoteca", "suplemento": 14 },
+    "mesa_vip": { "nombre": "Mesa VIP en discoteca", "suplemento": 25 },
+    "segunda_actividad_recargo": { "nombre": "Recargo segunda actividad", "suplemento": 20, "notas": "Sumar al precio de la actividad elegida" }
+  },
+  "gastos_gestion_por_persona": 6,
+  "viernes_gratis_todos_packs": [
+    "Chupitos de bienvenida",
+    "2x1 Copas Pubs",
+    "Entrada Eclipse"
+  ],
+  "pool_party_meses": [5, 6, 7, 8, 9],
+  "menus_imagenes": {
+    "packs": "https://onepartydocs.netlify.app/images/packs.jpg",
+    "comida": "https://onepartydocs.netlify.app/images/menu-comida.jpg",
+    "cena": "https://onepartydocs.netlify.app/images/menu-cena.jpg"
+  }
+}

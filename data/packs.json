@@ -1,0 +1,66 @@
+{
+  "basic": {
+    "id": "basic",
+    "nombre": "Basic",
+    "precio": 44,
+    "incluye": [
+      "Gynkana del novi@",
+      "Comida o cena a elegir",
+      "Tardeo y fiesta",
+      "Entrada + 2 copas gratis discoteca",
+      "Descuento especial pubs"
+    ]
+  },
+  "mix": {
+    "id": "mix",
+    "nombre": "Mix",
+    "precio": 49,
+    "incluye": [
+      "Gynkana del novi@",
+      "1 actividad a elegir",
+      "Comida o cena a elegir",
+      "Tardeo y fiesta",
+      "Entrada gratis discoteca",
+      "Descuento especial pubs"
+    ]
+  },
+  "afull": {
+    "id": "afull",
+    "nombre": "A Full",
+    "precio": 70,
+    "destacado": true,
+    "incluye": [
+      "Gynkana del novi@",
+      "1 actividad a elegir",
+      "Comida en chiringuito",
+      "Tardeo y fiesta",
+      "Cena en restaurante",
+      "Entrada gratis discoteca",
+      "Pack novi@ gratis (condiciones)",
+      "2 copas gratis novi@ + organizador",
+      "Descuento especial pubs"
+    ]
+  },
+  "afull_sin_actividad": {
+    "id": "afull_sin_actividad",
+    "nombre": "A Full sin actividad",
+    "precio": 50,
+    "incluye": [
+      "Gynkana del novi@",
+      "Comida en chiringuito",
+      "Tardeo y fiesta",
+      "Cena en restaurante",
+      "Entrada gratis discoteca",
+      "Descuento especial pubs"
+    ]
+  },
+  "premium": {
+    "id": "premium",
+    "nombre": "Premium",
+    "precio": 94,
+    "incluye": [
+      "Todo lo del A Full",
+      "Reservado VIP en discoteca (1 botella cada 5 personas)"
+    ]
+  }
+}

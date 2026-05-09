@@ -1,13 +1,11 @@
-Copiar
-
 // API endpoint que recibe los webhooks de Wassenger
 // Lo único que hace es: validar, encolar y disparar el worker
 // Responde rápido a Wassenger (siempre 200 OK)
- 
+
 import { pushMessage, isMessageSeen, markMessageSeen } from '../lib/upstash.js';
 import { isIgnoredPhone, getConversation, log, updateConversation } from '../lib/supabase.js';
 import { sendText, notifyHuman } from '../lib/wassenger.js';
- 
+
 export default async function handler(req, res) {
   // Solo POST
   if (req.method !== 'POST') {
@@ -25,7 +23,7 @@ export default async function handler(req, res) {
   // Responder a Wassenger
   return res.status(200).json({ ok: true });
 }
- 
+
 async function processWebhook(body) {
   if (!body || body.event !== 'message:in:new') return;
   
@@ -147,7 +145,7 @@ async function processWebhook(body) {
     console.error('Error triggering worker:', err);
   });
 }
- 
+
 /**
  * Detecta si un mensaje contiene palabras de activación
  */
@@ -168,7 +166,7 @@ function isActivationMessage(text) {
   
   return false;
 }
- 
+
 /**
  * Dispara el worker para procesar la cola del teléfono
  */
@@ -188,8 +186,7 @@ async function triggerWorker(phone, deviceId) {
   
   console.log('Worker response status:', workerRes.status);
 }
- 
+
 export const config = {
   maxDuration: 30
 };
- 

@@ -1,26 +1,31 @@
+Copiar
+
 // API endpoint que recibe los webhooks de Wassenger
 // Lo único que hace es: validar, encolar y disparar el worker
 // Responde rápido a Wassenger (siempre 200 OK)
-
+ 
 import { pushMessage, isMessageSeen, markMessageSeen } from '../lib/upstash.js';
 import { isIgnoredPhone, getConversation, log, updateConversation } from '../lib/supabase.js';
 import { sendText, notifyHuman } from '../lib/wassenger.js';
-
+ 
 export default async function handler(req, res) {
   // Solo POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   
-  // Responder a Wassenger inmediatamente
-  res.status(200).json({ ok: true });
-  
-  // Procesar en segundo plano (no esperamos al worker)
-  processWebhook(req.body).catch(err => {
+  // Procesar y disparar worker (esperamos a que la llamada al worker se inicie)
+  // El worker procesará en su propia función, no aquí
+  try {
+    await processWebhook(req.body);
+  } catch (err) {
     console.error('Error en webhook:', err);
-  });
+  }
+  
+  // Responder a Wassenger
+  return res.status(200).json({ ok: true });
 }
-
+ 
 async function processWebhook(body) {
   if (!body || body.event !== 'message:in:new') return;
   
@@ -142,7 +147,7 @@ async function processWebhook(body) {
     console.error('Error triggering worker:', err);
   });
 }
-
+ 
 /**
  * Detecta si un mensaje contiene palabras de activación
  */
@@ -163,37 +168,28 @@ function isActivationMessage(text) {
   
   return false;
 }
-
+ 
 /**
  * Dispara el worker para procesar la cola del teléfono
  */
 async function triggerWorker(phone, deviceId) {
-  // Esperar 1.5 segundos antes de procesar (debounce)
-  // Si llegan más mensajes mientras tanto, se procesarán todos juntos
-  await new Promise(r => setTimeout(r, 1500));
-  
-  // Llamar al endpoint del worker
-  // VERCEL_URL siempre incluye el host pero a veces es la URL temporal del deploy
-  // Mejor usar la URL fija del proyecto
   const baseUrl = process.env.SITE_URL 
     || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://onepartybot.vercel.app');
   
   console.log('Triggering worker at:', `${baseUrl}/api/worker`, 'for phone:', phone);
   
+  // Disparar worker SIN esperar respuesta (fire-and-forget)
+  // Pero esperamos a que el fetch se inicie antes de retornar
   const workerRes = await fetch(`${baseUrl}/api/worker`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-internal-token': process.env.INTERNAL_TOKEN || 'dev' },
     body: JSON.stringify({ phone, deviceId })
-  }).catch(err => {
-    console.error('Error calling worker:', err);
-    return null;
   });
   
-  if (workerRes) {
-    console.log('Worker response status:', workerRes.status);
-  }
+  console.log('Worker response status:', workerRes.status);
 }
-
+ 
 export const config = {
   maxDuration: 30
 };
+ 

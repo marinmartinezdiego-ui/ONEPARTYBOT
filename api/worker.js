@@ -22,12 +22,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'phone required' });
   }
   
-  res.status(200).json({ ok: true });
-  
-  processQueue(phone, deviceId).catch(err => {
+  try {
+    await processQueue(phone, deviceId);
+  } catch (err) {
     console.error(`Error procesando cola de ${phone}:`, err);
-    log(phone, 'worker_error', { error: err.message }).catch(() => {});
-  });
+    await log(phone, 'worker_error', { error: err.message }).catch(() => {});
+  }
+  
+  return res.status(200).json({ ok: true });
 }
 
 async function processQueue(phone, deviceId) {

@@ -122,7 +122,6 @@ async function triggerWorker(phone, deviceId) {
   const baseUrl = 'https://onepartybot.vercel.app';
   const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
   
-  // Añadir el bypass secret como query param para saltarse la Deployment Protection
   const workerUrl = bypassSecret 
     ? `${baseUrl}/api/worker?x-vercel-protection-bypass=${bypassSecret}`
     : `${baseUrl}/api/worker`;

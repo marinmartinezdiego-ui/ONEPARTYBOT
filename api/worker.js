@@ -1,5 +1,5 @@
 // Worker - procesa la cola de mensajes de un teléfono
-// Es atómico (un solo worker por teléfono a la vez gracias al lock)
+// V2 - con detección de markdown de imágenes en el texto generado
 
 import { drainQueue, acquireLock, releaseLock } from '../lib/upstash.js';
 import { getConversation, saveConversation, log } from '../lib/supabase.js';
@@ -30,6 +30,31 @@ export default async function handler(req, res) {
   }
   
   return res.status(200).json({ ok: true });
+}
+
+/**
+ * Detecta si un texto contiene markdown de imágenes ![text](url)
+ * Devuelve { cleanText, imagesToSend } donde:
+ * - cleanText: el texto sin las imágenes markdown (para enviar como texto)
+ * - imagesToSend: lista de URLs de imágenes detectadas
+ */
+function extractImagesFromMarkdown(text) {
+  const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+  const imagesToSend = [];
+  
+  // Extraer URLs de imágenes
+  let match;
+  while ((match = imageRegex.exec(text)) !== null) {
+    imagesToSend.push(match[2]);
+  }
+  
+  // Quitar el markdown del texto
+  const cleanText = text
+    .replace(imageRegex, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  
+  return { cleanText, imagesToSend };
 }
 
 async function processQueue(phone, deviceId) {
@@ -117,6 +142,21 @@ async function processQueue(phone, deviceId) {
       convo.messages.push({ role: 'assistant', content: response.content });
     }
     
+    // FIX: Procesar markdown de imágenes en el texto
+    // Si Claude escribió ![packs](url) en el texto, lo detectamos y mandamos imagen real
+    const processedTexts = [];
+    for (const text of textsToSend) {
+      const { cleanText, imagesToSend: extractedImages } = extractImagesFromMarkdown(text);
+      // Añadir las imágenes extraídas
+      imagesToSend.push(...extractedImages);
+      // Solo añadir texto si queda algo
+      if (cleanText && cleanText.length > 0) {
+        processedTexts.push(cleanText);
+      }
+    }
+    textsToSend = processedTexts;
+    
+    // Anti-saludo duplicado
     const previousAssistantMsgs = convo.messages.slice(0, -1).filter(m => m.role === 'assistant');
     const alreadyGreeted = previousAssistantMsgs.some(m => {
       const c = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
@@ -130,12 +170,19 @@ async function processQueue(phone, deviceId) {
       return t;
     }).filter(t => t.length > 0);
     
+    // Eliminar URLs sueltas de imágenes que pueda haber dejado Claude en el texto
+    textsToSend = textsToSend.map(t => {
+      return t.replace(/https?:\/\/onepartydocs\.netlify\.app\/images\/[a-z-]+\.jpg/gi, '').replace(/\n{3,}/g, '\n\n').trim();
+    }).filter(t => t.length > 0);
+    
     for (const text of textsToSend) {
       const cleanText = text.replace(/\n{3,}/g, '\n\n').trim();
       if (cleanText) await sendText(phone, cleanText, deviceId);
     }
     
-    for (const imageUrl of imagesToSend) {
+    // Eliminar duplicados de imágenes (por si acaso)
+    const uniqueImages = [...new Set(imagesToSend)];
+    for (const imageUrl of uniqueImages) {
       await sendImage(phone, imageUrl, deviceId);
     }
     

@@ -15,16 +15,16 @@
     "paintball": { "nombre": "Paintball", "suplemento": 5 },
     "banana": { "nombre": "Banana", "suplemento": 5 },
     "humor_amarillo": { "nombre": "Humor Amarillo", "suplemento": 8, "notas": "Actividades con agua y minijuegos, muy completa" },
-    "barco": { 
-      "nombre": "Barco", 
-      "suplemento": 15, 
+    "barco": {
+      "nombre": "Barco",
+      "suplemento": 15,
       "notas": "Solo sábados. 1h30min. 100 plazas. Con otros grupos. Música.",
       "horarios": ["11h", "12:30h", "14h (incluye comida)"]
     },
     "caballo": { "nombre": "Paseo a Caballo", "suplemento": 30 },
-    "motos_agua": { 
-      "nombre": "Motos de Agua", 
-      "suplemento": 25, 
+    "motos_agua": {
+      "nombre": "Motos de Agua",
+      "suplemento": 25,
       "notas": "40 minutos. Se cogen en pareja. Si número impar, se necesita una moto extra.",
       "calculo_especial": "motos_agua"
     }
@@ -40,7 +40,7 @@
     "bestias_23": { "nombre": "Los Bestias 23h", "suplemento": 9, "notas": "Animación + barra libre + 1 copa" }
   },
   "extras": {
-    "copas_disco": { "nombre": "2 copas + entrada discoteca", "suplemento": 14 },
+    "copas_disco": { "nombre": "Entrada + 2 copas disco sábado", "suplemento": 14, "notas": "Solo necesario para Mix / A Full / variantes. Basic y Premium ya la incluyen." },
     "mesa_vip": { "nombre": "Mesa VIP en discoteca", "suplemento": 25 },
     "segunda_actividad_recargo": { "nombre": "Recargo segunda actividad", "suplemento": 20, "notas": "Sumar al precio de la actividad elegida" }
   },

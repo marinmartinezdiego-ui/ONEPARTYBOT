@@ -10,6 +10,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Kill switch global: si BOT_PAUSED=true en Vercel, ignoramos todo
+  // (responder 200 evita que Wassenger reintente y deshabilite el webhook).
+  if (process.env.BOT_PAUSED === 'true') {
+    return res.status(200).json({ ok: true, paused: true });
+  }
+
   // Verificación de firma (si el secret está configurado).
   // Si no hay WASSENGER_WEBHOOK_SECRET en env, se omite (compat hacia atrás).
   if (!verifyWassengerSignature(req)) {

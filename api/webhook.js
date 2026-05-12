@@ -150,11 +150,15 @@ async function processWebhook(body) {
   await pushMessage(phone, queueMsg);
   await log(phone, 'queued', { msgId: queueMsg.id });
 
-  // FIRE-AND-FORGET: dispara el worker sin bloquear el webhook.
-  // El propio worker responderá 200 inmediatamente y procesará en background.
-  triggerWorker(phone, deviceId).catch(err =>
-    console.error('Worker trigger failed:', err.message)
-  );
+  // Disparamos el worker. El worker está hecho para responder 200 al
+  // instante y procesar en background, así que este await es rápido (<500ms
+  // normalmente) y nos asegura que el fetch sale antes de que Vercel cierre
+  // la función webhook.
+  try {
+    await triggerWorker(phone, deviceId);
+  } catch (err) {
+    console.error('Worker trigger failed:', err.message);
+  }
 }
 
 async function handleOutgoingMessage(body) {

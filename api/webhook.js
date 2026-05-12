@@ -2,7 +2,7 @@
 // Encola el mensaje y dispara el worker (con bypass de Deployment Protection)
 
 import crypto from 'node:crypto';
-import { pushMessage, isMessageSeen, markMessageSeen, wasBotSent } from '../lib/upstash.js';
+import { pushMessage, isMessageSeen, markMessageSeen, wasBotSent, wasBotSentMedia } from '../lib/upstash.js';
 import { isIgnoredPhone, getConversation, log, updateConversation } from '../lib/supabase.js';
 
 export default async function handler(req, res) {
@@ -72,6 +72,11 @@ async function processWebhook(body) {
       const text = (msg.body || msg.text || '').trim();
       if (text && await wasBotSent(targetPhone, text)) {
         await log(targetPhone, 'self_outgoing_ignored', {});
+        return;
+      }
+      const isMedia2 = msg.type && msg.type !== 'chat' && msg.type !== 'text';
+      if ((isMedia2 || !text) && await wasBotSentMedia(targetPhone)) {
+        await log(targetPhone, 'self_media_ignored', { msgType: msg.type || 'no-text' });
         return;
       }
       // Comando de reactivación
@@ -180,6 +185,13 @@ async function handleOutgoingMessage(body) {
   // Mensaje enviado por el bot vía API → no hacer nada
   if (text && await wasBotSent(targetPhone, text)) {
     await log(targetPhone, 'bot_self_outgoing_ignored', {});
+    return;
+  }
+  // ¿Es media (imagen/video/etc.) o no tiene texto? Si el bot acaba de mandar
+  // media a este número, asumimos que es el reflejo de ese envío.
+  const isMedia = msg.type && msg.type !== 'chat' && msg.type !== 'text';
+  if ((isMedia || !text) && await wasBotSentMedia(targetPhone)) {
+    await log(targetPhone, 'bot_media_outgoing_ignored', { msgType: msg.type || 'no-text' });
     return;
   }
   const sourceType = msg.sourceType || msg.source || msg.deliveredVia;

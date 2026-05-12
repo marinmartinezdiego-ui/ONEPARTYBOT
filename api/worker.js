@@ -3,7 +3,7 @@
 //      resumen de historial >20 mensajes, customer_data inyectado en system prompt.
 
 import { drainQueue, acquireLock, releaseLock } from '../lib/upstash.js';
-import { getConversation, saveConversation, log } from '../lib/supabase.js';
+import { getConversation, saveConversation, log, saveUnknownQuestion } from '../lib/supabase.js';
 import { sendText, sendImage, sendTyping, notifyHuman } from '../lib/wassenger.js';
 import { callClaude, parseClaudeResponse, summarizeMessages } from '../lib/claude.js';
 import { executeTool } from '../lib/tools.js';
@@ -255,6 +255,14 @@ async function processQueue(phone, deviceId) {
         convo.paused_until = pausedUntil;
         await notifyHuman(action.motivo, phone, combinedText, deviceId);
         await log(phone, 'human_alerted', { motivo: action.motivo });
+        // Guardar la pregunta en la tabla de "lagunas" para revisarla más tarde
+        await saveUnknownQuestion({
+          phone,
+          customer_question: combinedText,
+          motivo: action.motivo,
+          conversation_context: convo.messages.slice(-6),
+          customer_data: convo.customer_data || {}
+        });
       } else if (action.type === 'cerrar') {
         convo.closed = true;
         await log(phone, 'closed', {});

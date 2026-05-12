@@ -52,8 +52,8 @@
   ],
   "pool_party_meses": [5, 6, 7, 8, 9],
   "menus_imagenes": {
-    "packs": "https://onepartydocs.netlify.app/images/packs.jpg",
-    "comida": "https://onepartydocs.netlify.app/images/menu-comida.jpg",
-    "cena": "https://onepartydocs.netlify.app/images/menu-cena.jpg"
+    "packs": "https://onepartybot.vercel.app/images/packs.jpg",
+    "comida": "https://onepartybot.vercel.app/images/menu-comida.jpg",
+    "cena": "https://onepartybot.vercel.app/images/menu-cena.jpg"
   }
 }

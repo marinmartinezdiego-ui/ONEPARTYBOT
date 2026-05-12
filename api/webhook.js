@@ -69,15 +69,21 @@ async function processWebhook(body) {
     const rawTo = msg.to || msg.chatId || '';
     const targetPhone = rawTo.replace(/@c\.us$/, '').replace(/@s\.whatsapp\.net$/, '');
     if (targetPhone && !targetPhone.includes('g.us')) {
-      const text = msg.body || msg.text || '';
-      // No pausar si fue el bot mismo quien lo envió
+      const text = (msg.body || msg.text || '').trim();
       if (text && await wasBotSent(targetPhone, text)) {
         await log(targetPhone, 'self_outgoing_ignored', {});
         return;
       }
-      const pausedUntil = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+      // Comando de reactivación
+      if (/^\/(bot|reactivar|reactivate)(\b|$)/i.test(text)) {
+        await updateConversation(targetPhone, { paused_until: null }).catch(() => {});
+        await log(targetPhone, 'manual_reactivate', { trigger: text.slice(0, 80) });
+        return;
+      }
+      // Pausa indefinida
+      const pausedUntil = '9999-12-31T23:59:59.000Z';
       await updateConversation(targetPhone, { paused_until: pausedUntil }).catch(() => {});
-      await log(targetPhone, 'manual_pause_inbound_fromMe', { until: pausedUntil });
+      await log(targetPhone, 'manual_pause_indefinite', { preview: text.slice(0, 80) });
     }
     return;
   }
@@ -169,25 +175,37 @@ async function handleOutgoingMessage(body) {
   const targetPhone = rawTo.replace(/@c\.us$/, '').replace(/@s\.whatsapp\.net$/, '');
   if (!targetPhone || targetPhone.includes('g.us')) return;
 
-  // Si el mensaje saliente lo envió el propio bot vía API, NO pausar.
-  // Detectamos comparando contenido con lo que el bot acaba de enviar (Redis 60s).
-  const text = msg.body || msg.text || '';
+  const text = (msg.body || msg.text || '').trim();
+
+  // Mensaje enviado por el bot vía API → no hacer nada
   if (text && await wasBotSent(targetPhone, text)) {
     await log(targetPhone, 'bot_self_outgoing_ignored', {});
     return;
   }
-
-  // También aceptamos pistas explícitas de Wassenger
   const sourceType = msg.sourceType || msg.source || msg.deliveredVia;
   if (sourceType === 'api') {
     await log(targetPhone, 'api_outgoing_ignored', { sourceType });
     return;
   }
 
-  // Llegado aquí, asumimos que fue una persona (web/móvil/dashboard) → pausar 10 min
-  const pausedUntil = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  // COMANDO DE REACTIVACIÓN: si Diego escribe un mensaje que EMPIEZA por
+  // "/bot" o "/reactivar", limpia la pausa y deja al bot volver a operar.
+  if (/^\/(bot|reactivar|reactivate)(\b|$)/i.test(text)) {
+    await updateConversation(targetPhone, {
+      paused_until: null
+    }).catch(() => {});
+    await log(targetPhone, 'manual_reactivate', { trigger: text.slice(0, 80) });
+    return;
+  }
+
+  // Cualquier otro mensaje saliente del operador (web, móvil, dashboard)
+  // → pausa INDEFINIDA (año 9999). Solo se desactiva con /bot o limpieza manual.
+  const pausedUntil = '9999-12-31T23:59:59.000Z';
   await updateConversation(targetPhone, { paused_until: pausedUntil }).catch(() => {});
-  await log(targetPhone, 'manual_pause_web', { until: pausedUntil, sourceType: sourceType || 'unknown' });
+  await log(targetPhone, 'manual_pause_indefinite', {
+    preview: text.slice(0, 80),
+    sourceType: sourceType || 'unknown'
+  });
 }
 
 function isActivationMessage(text) {

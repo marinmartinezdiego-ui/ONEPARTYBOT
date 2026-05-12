@@ -23,16 +23,19 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'phone required' });
   }
 
-  // Responder 200 INMEDIATAMENTE para que el webhook que nos llamó no se quede
-  // bloqueado. El procesamiento sigue en background en este mismo invoke.
-  res.status(200).json({ ok: true });
-
+  // Procesamos ANTES de responder. Vercel Serverless cierra la función
+  // en cuanto envías el response, así que no podemos hacer trabajo después.
+  // El webhook que nos llama tiene timeout 3s en su fetch hacia aquí, así
+  // que aunque tardemos 15s en procesar, el webhook ya habrá respondido
+  // 200 a Wassenger y nosotros seguimos vivos hasta acabar (maxDuration 60s).
   try {
     await processQueue(phone, deviceId);
   } catch (err) {
     console.error(`Error procesando cola de ${phone}:`, err);
     await log(phone, 'worker_error', { error: err.message }).catch(() => {});
   }
+
+  return res.status(200).json({ ok: true });
 }
 
 function extractImagesFromMarkdown(text) {

@@ -209,6 +209,15 @@ async function processQueue(phone, deviceId) {
               .trim();
     }).filter(t => t.length > 0);
 
+    // 4a) Si la respuesta incluye avisar_humano, descartamos todos los textos
+    //     que generó Claude y usamos ÚNICAMENTE el respuesta_al_cliente de la
+    //     tool. Así no salen dobles mensajes redundantes al cliente.
+    const avisoAction = actionsToDo.find(a => a.type === 'avisar_humano');
+    if (avisoAction) {
+      const respuesta = (avisoAction.respuesta || '').trim();
+      textsToSend = respuesta ? [respuesta] : [];
+    }
+
     // 4) Dedup de textos idénticos o casi idénticos (anti-doble-mensaje)
     const dedupedTexts = [];
     for (const t of textsToSend) {

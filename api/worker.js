@@ -196,8 +196,15 @@ async function processQueue(phone, deviceId) {
       return c.includes('Soy Diego de ONEPARTY');
     });
     textsToSend = textsToSend.map(t => {
-      if (alreadyGreeted && t.includes('Soy Diego de ONEPARTY')) {
-        return t.replace(/¡Hola!\s*🎉?\s*Soy Diego de ONEPARTY[^]*?(personas sois|sois)\s*🙌?\s*/i, '').trim();
+      if (alreadyGreeted) {
+        // Quitar el saludo en cualquiera de sus variantes habituales
+        let cleaned = t;
+        // Variante 1: "¡Hola! 🎉 Soy Diego de ONEPARTY[, encantado][. otras frases del saludo hasta ?/.!]"
+        // Cortamos hasta el primer . ! ? que cierre la frase del saludo, conservando el resto del mensaje.
+        cleaned = cleaned.replace(/[¡!]?\s*Hola[!]?\s*🎉?\s*[,]?\s*Soy Diego de ONEPARTY[^.!?\n]*[.!?]?\s*/gi, '');
+        // Variante 2: la primera línea es solo el saludo aislado
+        cleaned = cleaned.replace(/^[¡!]?\s*Hola\b[^\n]*Soy Diego de ONEPARTY[^\n]*\n+/i, '');
+        return cleaned.trim();
       }
       return t;
     }).filter(t => t.length > 0);
@@ -249,13 +256,16 @@ async function processQueue(phone, deviceId) {
     }
 
     // --- Envío ------------------------------------------------------------
+    // IMÁGENES PRIMERO (tardan ~3-4s en llegar por Wassenger). Luego texto.
+    // Así el cliente ve la imagen y el texto la acompaña, en lugar de leer
+    // "te lo mando 👇" y esperar 4s mirando al vacío.
+    for (const imageUrl of uniqueImages) {
+      await sendImage(phone, imageUrl, deviceId);
+    }
+
     for (const text of textsToSend) {
       const clean = text.replace(/\n{3,}/g, '\n\n').trim();
       if (clean) await sendText(phone, clean, deviceId);
-    }
-
-    for (const imageUrl of uniqueImages) {
-      await sendImage(phone, imageUrl, deviceId);
     }
 
     for (const action of actionsToDo) {

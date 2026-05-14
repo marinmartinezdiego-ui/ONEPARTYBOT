@@ -225,6 +225,16 @@ async function processQueue(phone, deviceId) {
       textsToSend = respuesta ? [respuesta] : [];
     }
 
+    // 4b) Si Claude generó texto en VARIAS iteraciones (pre-tool + post-tool),
+    //     quedarse SOLO con el último. Los anteriores suelen ser muletillas
+    //     tipo "te lo calculo" o preguntas que ya no aplican porque el cliente
+    //     dijo el dato en su mensaje. El último incluye la respuesta final.
+    if (!avisoAction && textsToSend.length > 1) {
+      const dropped = textsToSend.length - 1;
+      textsToSend = [textsToSend[textsToSend.length - 1]];
+      await log(phone, 'pre_tool_texts_dropped', { count: dropped }).catch(() => {});
+    }
+
     // 4) Dedup de textos idénticos o casi idénticos (anti-doble-mensaje)
     const dedupedTexts = [];
     for (const t of textsToSend) {

@@ -116,7 +116,21 @@ async function processWebhook(body) {
 
   if (['audio', 'ptt', 'voice'].includes(msgType)) {
     const convo = await getConversation(phone);
-    if (convo.closed) return;
+
+    // Filtros: no respondemos a audios si la conversación no está activada,
+    // está cerrada, pausada (manual o avisar_humano), o el número está ignorado.
+    if (convo.closed) {
+      await log(phone, 'audio_closed_ignored', {}); return;
+    }
+    if (!convo.activated) {
+      await log(phone, 'audio_unactivated_ignored', {}); return;
+    }
+    if (convo.paused_until && new Date(convo.paused_until) > new Date()) {
+      await log(phone, 'audio_paused_ignored', {}); return;
+    }
+    if (await isIgnoredPhone(phone)) {
+      await log(phone, 'audio_ignored_phone', {}); return;
+    }
     if (convo.audio_replied_at && (Date.now() - new Date(convo.audio_replied_at).getTime() < 30000)) return;
 
     const replies = [
@@ -222,12 +236,24 @@ async function handleOutgoingMessage(body) {
 
 function isActivationMessage(text) {
   const normalized = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  const words = ['despedida', 'soltero', 'soltera', 'oneparty', 'one party'];
-  if (words.some(w => normalized.includes(w))) return true;
+
+  // Palabras muy específicas del servicio (despedidas) → activan solas.
+  // Importante: NO incluimos "oneparty" / "one party" porque proveedores,
+  // intermediarios y amigos los usan sin pedir servicio.
+  const triggerStrong = ['despedida', 'soltero', 'soltera'];
+  if (triggerStrong.some(w => normalized.includes(w))) return true;
+
+  // Frases compuestas que indican intención clara de contratar.
+  // Las palabras genéricas como "precio" o "información" SOLAS no activan;
+  // tienen que ir combinadas con una palabra del servicio.
   const phrases = [
-    'precio', 'informacion', 'cuanto cuesta', 'cuanto vale',
     'pack basic', 'pack mix', 'pack a full', 'pack premium',
-    'organizar despedida', 'reservar despedida'
+    'organizar despedida', 'reservar despedida', 'reservar pack',
+    'precio pack', 'precio despedida',
+    'informacion pack', 'informacion para despedida', 'informacion despedida',
+    'cuanto cuesta el pack', 'cuanto cuesta la despedida',
+    'cuanto vale el pack', 'cuanto vale la despedida',
+    'quiero organizar', 'estamos organizando una despedida'
   ];
   return phrases.some(p => normalized.includes(p));
 }

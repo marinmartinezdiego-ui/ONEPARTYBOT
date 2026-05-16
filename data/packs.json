@@ -81,5 +81,14 @@
       "Reservado VIP en discoteca sábado (1 botella cada 5 personas)",
       "Entrada a la disco del sábado incluida en el VIP"
     ]
+  },
+  "solo_actividad": {
+    "id": "solo_actividad",
+    "nombre": "Solo Actividad",
+    "precio": 32,
+    "incluye": [
+      "1 actividad a elegir",
+      "Sin alojamiento, comida, cena ni gynkana — solo la actividad"
+    ]
   }
 }

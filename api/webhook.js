@@ -79,16 +79,26 @@ async function processWebhook(body) {
         await log(targetPhone, 'self_media_ignored', { msgType: msg.type || 'no-text' });
         return;
       }
-      // Comando de reactivación
-      if (/^\/(bot|reactivar|reactivate)(\b|$)/i.test(text)) {
+      // Comando de reactivación: la palabra "compañero" en el texto
+      const normalizedFromMe = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      if (/\bcompanero(s)?\b/.test(normalizedFromMe)) {
         await updateConversation(targetPhone, { paused_until: null }).catch(() => {});
         await log(targetPhone, 'manual_reactivate', { trigger: text.slice(0, 80) });
         return;
       }
-      // Pausa indefinida
-      const pausedUntil = '9999-12-31T23:59:59.000Z';
-      await updateConversation(targetPhone, { paused_until: pausedUntil }).catch(() => {});
-      await log(targetPhone, 'manual_pause_indefinite', { preview: text.slice(0, 80) });
+      // Pausa de 2 horas (o conserva si ya hay más larga) + guarda en historial
+      const convoFromMe = await getConversation(targetPhone);
+      convoFromMe.messages = convoFromMe.messages || [];
+      convoFromMe.messages.push({ role: 'assistant', content: text });
+      if (convoFromMe.messages.length > 50) convoFromMe.messages = convoFromMe.messages.slice(-50);
+      const currentPauseMs2 = convoFromMe.paused_until ? new Date(convoFromMe.paused_until).getTime() : 0;
+      const newPause2hMs2 = Date.now() + 2 * 60 * 60 * 1000;
+      const pausedUntil = new Date(Math.max(currentPauseMs2, newPause2hMs2)).toISOString();
+      await updateConversation(targetPhone, {
+        paused_until: pausedUntil,
+        messages: convoFromMe.messages
+      }).catch(() => {});
+      await log(targetPhone, 'manual_pause_2h', { preview: text.slice(0, 80), until: pausedUntil });
     }
     return;
   }
@@ -157,7 +167,14 @@ async function processWebhook(body) {
 
   if (convo.closed) { await log(phone, 'closed_ignored', {}); return; }
   if (convo.paused_until && new Date(convo.paused_until) > new Date()) {
-    await log(phone, 'paused_ignored', {}); return;
+    // Aunque esté pausado, GUARDAMOS el mensaje en el historial para que
+    // el bot tenga contexto cuando se reactive con "compañero".
+    convo.messages = convo.messages || [];
+    convo.messages.push({ role: 'user', content: text });
+    if (convo.messages.length > 50) convo.messages = convo.messages.slice(-50);
+    await updateConversation(phone, { messages: convo.messages }).catch(() => {});
+    await log(phone, 'paused_ignored_saved', { preview: text.substring(0, 80) });
+    return;
   }
   if (await isIgnoredPhone(phone)) { await log(phone, 'old_chat_ignored', {}); return; }
   if (!convo.activated && convo.messages && convo.messages.length > 0) {
@@ -214,9 +231,11 @@ async function handleOutgoingMessage(body) {
     return;
   }
 
-  // COMANDO DE REACTIVACIÓN: si Diego escribe un mensaje que EMPIEZA por
-  // "/bot" o "/reactivar", limpia la pausa y deja al bot volver a operar.
-  if (/^\/(bot|reactivar|reactivate)(\b|$)/i.test(text)) {
+  // COMANDO DE REACTIVACIÓN: si Diego escribe un mensaje que contiene la
+  // palabra "compañero" (o "companero" sin tilde), limpia la pausa y deja al
+  // bot volver a operar.
+  const normalizedOut = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (/\bcompanero(s)?\b/.test(normalizedOut)) {
     await updateConversation(targetPhone, {
       paused_until: null
     }).catch(() => {});
@@ -225,12 +244,25 @@ async function handleOutgoingMessage(body) {
   }
 
   // Cualquier otro mensaje saliente del operador (web, móvil, dashboard)
-  // → pausa INDEFINIDA (año 9999). Solo se desactiva con /bot o limpieza manual.
-  const pausedUntil = '9999-12-31T23:59:59.000Z';
-  await updateConversation(targetPhone, { paused_until: pausedUntil }).catch(() => {});
-  await log(targetPhone, 'manual_pause_indefinite', {
+  // → pausa de 2 HORAS, o conserva la pausa actual si ya es más larga
+  // (ej. una pausa indefinida puesta por avisar_humano no se debe acortar).
+  // GUARDAMOS el mensaje del operador en el historial como assistant para que
+  // el bot tenga contexto cuando se reactive.
+  const convoOut = await getConversation(targetPhone);
+  convoOut.messages = convoOut.messages || [];
+  convoOut.messages.push({ role: 'assistant', content: text });
+  if (convoOut.messages.length > 50) convoOut.messages = convoOut.messages.slice(-50);
+  const currentPauseMs = convoOut.paused_until ? new Date(convoOut.paused_until).getTime() : 0;
+  const newPause2hMs = Date.now() + 2 * 60 * 60 * 1000;
+  const pausedUntil = new Date(Math.max(currentPauseMs, newPause2hMs)).toISOString();
+  await updateConversation(targetPhone, {
+    paused_until: pausedUntil,
+    messages: convoOut.messages
+  }).catch(() => {});
+  await log(targetPhone, 'manual_pause_2h', {
     preview: text.slice(0, 80),
-    sourceType: sourceType || 'unknown'
+    sourceType: sourceType || 'unknown',
+    until: pausedUntil
   });
 }
 

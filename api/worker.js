@@ -280,7 +280,9 @@ async function processQueue(phone, deviceId) {
 
     for (const action of actionsToDo) {
       if (action.type === 'avisar_humano') {
-        const pausedUntil = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+        // Pausa INDEFINIDA: el bot no se reactivará solo. Diego tiene que
+        // resolver la duda y escribir "compañero" para devolver el control.
+        const pausedUntil = '9999-12-31T23:59:59.000Z';
         convo.paused_until = pausedUntil;
         await notifyHuman(action.motivo, phone, combinedText, deviceId);
         await log(phone, 'human_alerted', { motivo: action.motivo });

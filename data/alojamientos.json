@@ -55,20 +55,80 @@
     }
   },
   "variable": {
-    "chalet": {
-      "nombre": "Chalet Kent / Villa",
+    "chalet_kent": {
+      "nombre": "Chalet Kent",
       "min_personas": 12,
-      "max_personas": 20,
-      "ubicacion": "Bellreguard",
+      "max_personas": 15,
+      "ubicacion": "Al final de la playa de Gandía",
+      "caracteristicas": "Villa privada con piscina",
       "senal": 900,
       "tarifas": {
-        "ene_abr": { "base": 1000, "extra_pers": 100 },
-        "mayo": { "base": 1500, "extra_pers": 120 },
-        "jun_sem12": { "base": 2000, "extra_pers": 120 },
-        "jun_sem3": { "base": 2000, "extra_pers": 120 },
-        "jun_sem4": { "base": 2000, "extra_pers": 120 },
-        "jul_ago": { "base": 2000, "extra_pers": 150 },
-        "sep_dic": { "base": 1500, "extra_pers": 120 }
+        "ene_abr": {
+          "base": 1000,
+          "extra_pers": 100
+        },
+        "mayo": {
+          "base": 1500,
+          "extra_pers": 120
+        },
+        "jun_sem12": {
+          "base": 2000,
+          "extra_pers": 120
+        },
+        "jun_sem3": {
+          "base": 2000,
+          "extra_pers": 120
+        },
+        "jun_sem4": {
+          "base": 2000,
+          "extra_pers": 120
+        },
+        "jul_ago": {
+          "base": 2000,
+          "extra_pers": 150
+        },
+        "sep_dic": {
+          "base": 1500,
+          "extra_pers": 120
+        }
+      }
+    },
+    "villa_bellreguard": {
+      "nombre": "Villa de Bellreguard",
+      "min_personas": 12,
+      "max_personas": 20,
+      "ubicacion": "En la playa de Bellreguard",
+      "caracteristicas": "Piscina cubierta + barbacoa",
+      "senal": 900,
+      "tarifas": {
+        "ene_abr": {
+          "base": 1000,
+          "extra_pers": 100
+        },
+        "mayo": {
+          "base": 1500,
+          "extra_pers": 120
+        },
+        "jun_sem12": {
+          "base": 2000,
+          "extra_pers": 120
+        },
+        "jun_sem3": {
+          "base": 2000,
+          "extra_pers": 120
+        },
+        "jun_sem4": {
+          "base": 2000,
+          "extra_pers": 120
+        },
+        "jul_ago": {
+          "base": 2000,
+          "extra_pers": 150
+        },
+        "sep_dic": {
+          "base": 1500,
+          "extra_pers": 120
+        }
       }
     }
   }

@@ -1,0 +1,303 @@
+[
+  {
+    "id": "TC01",
+    "description": "Pack Mix incluye UNA sola comida O cena, no las dos",
+    "bug_ref": "Pack Mix (bug recurrente) — sección 8",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hola, ¿qué incluye exactamente el Pack Mix? ¿Lleva comida y cena?"
+      }
+    ],
+    "customerData": {},
+    "assertions": {
+      "toolsCalled": [
+        "enviar_imagen"
+      ],
+      "textNotContains": [
+        "comida y cena",
+        "comida y la cena",
+        "tanto comida como cena"
+      ],
+      "judge": "¿Deja claro el bot que el Pack Mix incluye UNA SOLA opción (comida O cena, no ambas a la vez)?"
+    }
+  },
+  {
+    "id": "TC02",
+    "description": "Packs se presentan con imagen, nunca descritos con texto",
+    "bug_ref": "REGLA INVIOLABLE: nunca describir packs con texto — sección 7",
+    "messages": [
+      {
+        "role": "user",
+        "content": "¿Qué packs tenéis disponibles para la despedida?"
+      }
+    ],
+    "customerData": {},
+    "assertions": {
+      "toolsCalled": [
+        "enviar_imagen"
+      ],
+      "toolCalledWith": {
+        "enviar_imagen": {
+          "tipo": "packs"
+        }
+      }
+    }
+  },
+  {
+    "id": "TC03",
+    "description": "Presupuesto siempre calculado con tool, nunca inventado",
+    "bug_ref": "NUNCA calcular precios mentalmente — sección 7",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Somos 10 personas, venimos el 18 de julio, quiero el A Full con hostal y escape room"
+      }
+    ],
+    "customerData": {},
+    "assertions": {
+      "toolsCalled": [
+        "calcular_presupuesto"
+      ]
+    }
+  },
+  {
+    "id": "TC04",
+    "description": "Saludo adaptativo: no vuelve a pedir fecha/personas si ya las tiene",
+    "bug_ref": "Bot pregunta personas aunque ya las dijo — sección 8",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hola buenas"
+      }
+    ],
+    "customerData": {
+      "fecha": "2026-07-18",
+      "personas": 10,
+      "pack": "afull"
+    },
+    "assertions": {
+      "textNotContains": [
+        "para qué fecha",
+        "cuántas personas",
+        "cuantas personas",
+        "qué fecha tienes"
+      ],
+      "judge": "¿El bot reconoce los datos del cliente (10 personas, 18 de julio) sin volver a pedirlos desde cero?"
+    }
+  },
+  {
+    "id": "TC05",
+    "description": "Novi@ gratis: NUNCA mencionarlo por iniciativa propia",
+    "bug_ref": "Bot ofrece pack novi@ gratis sin que pregunten — sección 8",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hola, somos 8 personas contando con la novia que se casa"
+      }
+    ],
+    "customerData": {},
+    "assertions": {
+      "textNotContains": [
+        "entra gratis",
+        "la novia va gratis",
+        "el novio va gratis",
+        "novi@ gratis"
+      ],
+      "judge": "¿El bot evita mencionar que la novia/novio entra gratis sin que el cliente lo haya preguntado?"
+    }
+  },
+  {
+    "id": "TC06",
+    "description": "Cena Bestias: siempre por hora (21h/23h), nunca por precio",
+    "bug_ref": "El de 21€ o el de 23€ para cena — sección 8",
+    "messages": [
+      {
+        "role": "user",
+        "content": "¿Qué opciones de cena tenéis para el sábado?"
+      }
+    ],
+    "customerData": {},
+    "assertions": {
+      "textNotContains": [
+        "21€",
+        "23€",
+        "21 euros",
+        "23 euros"
+      ],
+      "judge": "¿El bot usa las expresiones '21h' o '23h' para referirse a Los Bestias en lugar de mencionar euros (como '21€' o '23€')? Si el bot solo mandó la imagen sin describir verbalmente los restaurantes, responde PASS."
+    }
+  },
+  {
+    "id": "TC07",
+    "description": "Alergias o intolerancias alimentarias → avisar_humano",
+    "bug_ref": "Triggers de avisar_humano — sección 7",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hola, uno del grupo es celíaco, ¿hay algún problema con la comida en los restaurantes?"
+      }
+    ],
+    "customerData": {},
+    "assertions": {
+      "toolsCalled": [
+        "avisar_humano"
+      ]
+    }
+  },
+  {
+    "id": "TC08",
+    "description": "Reclamación de tiempo de espera → avisar_humano urgente",
+    "bug_ref": "🚨 URGENTE: cliente reclama espera — sección 7 y 8",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Llevo 3 días esperando que me contactéis y nadie dice nada. Tengo la reserva hecha y no sé nada de nada."
+      }
+    ],
+    "customerData": {
+      "nombre_cliente": "María"
+    },
+    "assertions": {
+      "toolsCalled": [
+        "avisar_humano"
+      ],
+      "judge": "¿El bot trata la situación como urgente y comunica al cliente que un compañero lo atenderá enseguida?"
+    }
+  },
+  {
+    "id": "TC09",
+    "description": "Rango de personas (8 o 9) → usar siempre el número menor",
+    "bug_ref": "Bot insiste en número exacto con '8-9' — sección 8",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hola, vendremos entre 8 y 9 personas para el 18 de julio, ¿me puedes hacer un presupuesto del A Full?"
+      }
+    ],
+    "customerData": {},
+    "assertions": {
+      "toolsCalled": [
+        "calcular_presupuesto"
+      ],
+      "toolCalledWith": {
+        "calcular_presupuesto": {
+          "personas": 8
+        }
+      }
+    }
+  },
+  {
+    "id": "TC10",
+    "description": "Petición de llamada telefónica → avisar_humano",
+    "bug_ref": "Cliente pide llamada → trigger avisar_humano — sección 8",
+    "messages": [
+      {
+        "role": "user",
+        "content": "¿Podéis llamarme para explicarme las opciones? Prefiero hablar por teléfono."
+      }
+    ],
+    "customerData": {},
+    "assertions": {
+      "toolsCalled": [
+        "avisar_humano"
+      ]
+    }
+  },
+  {
+    "id": "TC11",
+    "description": "Gastos de gestión (6€) nunca se mencionan al cliente",
+    "bug_ref": "Gastos de gestión: NUNCA mencionar por iniciativa — sección 1",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Somos 10 personas, venimos el 18 de julio, dame un presupuesto del A Full con hostal"
+      }
+    ],
+    "customerData": {},
+    "assertions": {
+      "toolsCalled": [
+        "calcular_presupuesto"
+      ],
+      "textNotContains": [
+        "gestión",
+        "gastos de gestión",
+        "6 euros de gestión",
+        "6€ de gestión",
+        "6 € de gestión"
+      ]
+    }
+  },
+  {
+    "id": "TC12",
+    "description": "17+ personas con piscina → Villa Bellreguard, no Chalet Kent",
+    "bug_ref": "Bot mezcla Chalet Kent (Gandía) con Villa Bellreguard — sección 8",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Somos 17 personas y nos gustaría alojarnos en una villa con piscina para la despedida en julio"
+      }
+    ],
+    "customerData": {},
+    "assertions": {
+      "textNotContains": [
+        "kent"
+      ],
+      "judge": "¿El bot recomienda la Villa de Bellreguard (hasta 20 personas, en Bellreguard) y NO el Chalet Kent (máximo 15 personas, en Gandía)?"
+    }
+  },
+  {
+    "id": "TC13",
+    "description": "Pack solo_actividad cuando cliente pide solo la actividad",
+    "bug_ref": "Pack Solo Actividad — sección 1",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Solo quiero hacer paintball para la despedida, nada más. Sin alojamiento ni comidas, ¿cuánto sale?"
+      }
+    ],
+    "customerData": {},
+    "assertions": {
+      "toolsCalled": [
+        "calcular_presupuesto"
+      ],
+      "toolCalledWith": {
+        "calcular_presupuesto": {
+          "pack": "solo_actividad"
+        }
+      }
+    }
+  },
+  {
+    "id": "TC14",
+    "description": "Modificación de reserva existente → avisar_humano",
+    "bug_ref": "Triggers avisar_humano: modificar reserva ya hecha — sección 7",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hola, tenemos una reserva hecha para julio y queremos apuntar a 2 personas más al alojamiento, ¿es posible?"
+      }
+    ],
+    "customerData": {},
+    "assertions": {
+      "toolsCalled": [
+        "avisar_humano"
+      ]
+    }
+  },
+  {
+    "id": "TC15",
+    "description": "No se mezclan packs, pero segunda actividad viernes sí es posible",
+    "bug_ref": "Cliente quiere combinar packs — sección 8",
+    "messages": [
+      {
+        "role": "user",
+        "content": "¿Puedo coger el Pack Basic para el viernes y el A Full para el sábado?"
+      }
+    ],
+    "customerData": {},
+    "assertions": {
+      "judge": "¿El bot explica que los packs no se pueden mezclar, pero ofrece la segunda actividad del viernes (+20€/pers + suplemento) como alternativa válida?"
+    }
+  }
+]

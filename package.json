@@ -4,6 +4,9 @@
   "description": "Bot Diego para ONEPARTY - despedidas en Gandía",
   "type": "module",
   "private": true,
+  "scripts": {
+    "test:conversations": "node test/conversations.test.mjs"
+  },
   "engines": {
     "node": ">=20"
   }

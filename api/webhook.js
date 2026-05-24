@@ -2,7 +2,7 @@
 // Encola el mensaje y dispara el worker (con bypass de Deployment Protection)
 
 import crypto from 'node:crypto';
-import { pushMessage, isMessageSeen, markMessageSeen, wasBotSent, wasBotSentMedia } from '../lib/upstash.js';
+import { pushMessage, isMessageSeen, markMessageSeen, wasBotSent, wasBotSentMedia, wasBotSentMessageId } from '../lib/upstash.js';
 import { isIgnoredPhone, getConversation, log, updateConversation } from '../lib/supabase.js';
 
 export default async function handler(req, res) {
@@ -213,7 +213,15 @@ async function handleOutgoingMessage(body) {
 
   const text = (msg.body || msg.text || '').trim();
 
-  // Mensaje enviado por el bot vía API → no hacer nada
+  // PRIMER CHECK: por message ID de Wassenger (más fiable que el hash del texto).
+  // Cuando el bot envía un mensaje, capturamos el ID que devuelve Wassenger.
+  // Cuando Wassenger nos devuelve ese mismo mensaje como eco, el msg.id coincide.
+  if (msg.id && await wasBotSentMessageId(msg.id)) {
+    await log(targetPhone, 'bot_self_outgoing_ignored_by_id', { msgId: msg.id });
+    return;
+  }
+
+  // SEGUNDO CHECK (fallback): por hash del texto, por si el ID no estaba disponible
   if (text && await wasBotSent(targetPhone, text)) {
     await log(targetPhone, 'bot_self_outgoing_ignored', {});
     return;

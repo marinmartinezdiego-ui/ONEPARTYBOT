@@ -68,7 +68,7 @@ function isNearDuplicate(a, b) {
 
 async function processQueue(phone, deviceId) {
   // Pequeño delay para agrupar mensajes que llegan seguidos
-  await new Promise(r => setTimeout(r, 1500));
+  await new Promise(r => setTimeout(r, 5000)); // 5s para agrupar mensajes seguidos del cliente
 
   const gotLock = await acquireLock(phone, 60);
   if (!gotLock) {
@@ -86,6 +86,11 @@ async function processQueue(phone, deviceId) {
     await log(phone, 'processing', { count: messages.length });
 
     let convo = await getConversation(phone);
+    // Snapshot del número de mensajes assistant ANTES de procesar.
+    // Lo usaremos antes de enviar para detectar si otro worker concurrente
+    // ya añadió una respuesta del bot mientras procesábamos.
+    const assistantCountAtStart = (convo.messages || [])
+      .filter(m => m.role === 'assistant').length;
 
     // Re-chequeo defensivo: si la conversación fue pausada o cerrada
     // entre el encolado y el drenado, abortamos aquí.
@@ -255,13 +260,23 @@ async function processQueue(phone, deviceId) {
     const freshConvo = await getConversation(phone);
     if (freshConvo.closed) {
       await log(phone, 'closed_before_send_aborted', {});
-      // Guardamos convo igualmente para no perder los mensajes del usuario
       await saveConversation({ ...convo, closed: true });
       return;
     }
     if (freshConvo.paused_until && new Date(freshConvo.paused_until) > new Date()) {
       await log(phone, 'paused_before_send_aborted', { until: freshConvo.paused_until });
       await saveConversation({ ...convo, paused_until: freshConvo.paused_until });
+      return;
+    }
+    // ANTI-DOBLE-RESPUESTA entre workers concurrentes: si otro worker ya añadió
+    // mensajes del bot al historial mientras procesábamos, abortar para no
+    // mandar respuestas duplicadas al cliente.
+    const assistantCountNow = (freshConvo.messages || [])
+      .filter(m => m.role === 'assistant').length;
+    if (assistantCountNow > assistantCountAtStart) {
+      await log(phone, 'concurrent_response_detected_aborted', {
+        was: assistantCountAtStart, now: assistantCountNow
+      });
       return;
     }
 

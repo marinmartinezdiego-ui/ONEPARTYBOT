@@ -3,7 +3,7 @@
 
 import crypto from 'node:crypto';
 import { pushMessage, isMessageSeen, markMessageSeen, wasBotSent, wasBotSentMedia, wasBotSentMessageId } from '../lib/upstash.js';
-import { isIgnoredPhone, getConversation, log, updateConversation } from '../lib/supabase.js';
+import { isIgnoredPhone, getConversation, log, updateConversation, crearReservaConfirmada } from '../lib/supabase.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -111,6 +111,25 @@ async function processWebhook(body) {
 
   const deviceId = (device && device.id) || msg.deviceId;
 
+  // COMANDOS DE ADMINISTRADOR — Diego escribe al bot desde su propio número
+  // (el NOTIFICATION_PHONE). Procesamos comandos tipo `confirmar 34xxx` y
+  // devolvemos respuesta sin meter en el flujo normal de clientes.
+  const NOTIFICATION_PHONE = process.env.NOTIFICATION_PHONE || '34620067712';
+  if (phone === NOTIFICATION_PHONE) {
+    const adminText = (msg.body || msg.text || '').trim();
+    if (adminText) {
+      const handled = await handleAdminCommand(adminText, deviceId);
+      if (handled) {
+        if (msg.id) await markMessageSeen(msg.id);
+        return;
+      }
+    }
+    // Si no es un comando reconocido, simplemente lo ignoramos (no entra al
+    // flujo de cliente normal — Diego nunca debe ser tratado como cliente).
+    if (msg.id) await markMessageSeen(msg.id);
+    return;
+  }
+
   if (msg.id && await isMessageSeen(msg.id)) {
     await log(phone, 'duplicate_ignored', { msgId: msg.id });
     return;
@@ -119,9 +138,28 @@ async function processWebhook(body) {
 
   const msgType = msg.type || 'chat';
 
+  // Si llega media (imagen, vídeo, documento, etc.), NO la ignoramos como antes.
+  // El bot no puede "ver" el archivo, pero sí debe SABER que el cliente envió
+  // algo, porque normalmente es el formulario completado, un comprobante de
+  // pago, o una foto que necesita revisión humana. Convertimos el mensaje en
+  // un texto sintético para que entre al flujo normal y el bot responda algo
+  // como "perfecto, lo revisa mi compañero" y llame a avisar_humano. Antes el
+  // bot decía "no veo nada, mándamelo otra vez" porque ignorábamos el evento.
+  let syntheticMediaText = null;
   if (['image', 'video', 'sticker', 'document', 'vcard', 'contact', 'location'].includes(msgType)) {
-    await log(phone, 'media_ignored', { type: msgType });
-    return;
+    await log(phone, 'media_received_as_text', { type: msgType });
+    const labels = {
+      image: 'IMAGEN',
+      video: 'VÍDEO',
+      sticker: 'STICKER',
+      document: 'DOCUMENTO',
+      vcard: 'CONTACTO',
+      contact: 'CONTACTO',
+      location: 'UBICACIÓN'
+    };
+    const caption = (msg.body || msg.caption || '').trim();
+    const captionPart = caption ? ` Texto que acompaña al archivo: "${caption}".` : '';
+    syntheticMediaText = `[ARCHIVO RECIBIDO DEL CLIENTE — tipo: ${labels[msgType] || msgType.toUpperCase()}. NO puedes verlo. Normalmente es el FORMULARIO completado, un comprobante de pago, o una foto que necesita revisión humana.${captionPart}]`;
   }
 
   if (['audio', 'ptt', 'voice'].includes(msgType)) {
@@ -160,7 +198,7 @@ async function processWebhook(body) {
     return;
   }
 
-  const text = msg.body || msg.text || '';
+  const text = syntheticMediaText || msg.body || msg.text || '';
   if (!text) return;
 
   const convo = await getConversation(phone);
@@ -326,6 +364,104 @@ async function triggerWorker(phone, deviceId) {
       console.error('Worker trigger error:', e.message);
     }
   }
+}
+
+// ======================================================================
+// COMANDOS DE ADMINISTRADOR (Diego escribiendo desde su WhatsApp personal)
+// ======================================================================
+// Comandos soportados:
+//   - "confirmar 34xxxxxxxxx"  → marca la reserva del cliente como confirmada
+//                                en la tabla `reservas`, leyendo alojamiento +
+//                                fecha de su customer_data.
+//   - "ayuda" o "help"         → lista de comandos
+// ======================================================================
+async function handleAdminCommand(text, deviceId) {
+  const { sendText } = await import('../lib/wassenger.js');
+  const NOTIFICATION_PHONE = process.env.NOTIFICATION_PHONE || '34620067712';
+
+  const normalized = text.toLowerCase().trim();
+
+  // --- AYUDA ----------------------------------------------------------
+  if (/^(ayuda|help|\?)$/.test(normalized)) {
+    await sendText(NOTIFICATION_PHONE,
+      `🤖 *Comandos disponibles:*\n\n` +
+      `• \`confirmar 34XXXXXXXXX\` — marca reserva del cliente como confirmada (bloquea fecha en chalet/villa)\n` +
+      `• \`ayuda\` — esto`,
+      deviceId
+    );
+    return true;
+  }
+
+  // --- CONFIRMAR RESERVA ----------------------------------------------
+  const matchConfirmar = normalized.match(/^confirmar\s+(\+?\d{9,15})$/);
+  if (matchConfirmar) {
+    const clientePhone = matchConfirmar[1].replace(/^\+/, '');
+    await log(clientePhone, 'admin_confirmar_reserva_solicitado', {});
+
+    // Leer datos del cliente
+    const convo = await getConversation(clientePhone);
+    const cd = convo.customer_data || {};
+
+    if (!cd.fecha || !cd.alojamiento) {
+      await sendText(NOTIFICATION_PHONE,
+        `❌ No puedo confirmar la reserva de ${clientePhone}: faltan datos en su ficha.\n` +
+        `Fecha: ${cd.fecha || 'NO'}\nAlojamiento: ${cd.alojamiento || 'NO'}\n\n` +
+        `Revísalo manualmente o pídeme que cree la reserva con datos concretos.`,
+        deviceId
+      );
+      return true;
+    }
+
+    // Solo bloqueamos chalet/villa
+    if (cd.alojamiento !== 'chalet_kent' && cd.alojamiento !== 'villa_bellreguard') {
+      await sendText(NOTIFICATION_PHONE,
+        `ℹ️ Cliente ${clientePhone} reservó *${cd.alojamiento}* — no se bloquea (solo chalet/villa).\n` +
+        `Datos: ${cd.fecha}, ${cd.personas || '?'} pers.\n\n` +
+        `No hago nada en la tabla de reservas.`,
+        deviceId
+      );
+      return true;
+    }
+
+    // Crear la reserva
+    const r = await crearReservaConfirmada({
+      alojamiento: cd.alojamiento,
+      fecha_sabado: cd.fecha,
+      telefono_cliente: clientePhone,
+      nombre_cliente: cd.nombre_cliente || null,
+      personas: cd.personas || null,
+      notas: `Confirmada manualmente vía comando admin`
+    });
+
+    if (r.ok) {
+      const nombreAloj = cd.alojamiento === 'chalet_kent' ? 'Chalet Kent' : 'Villa de Bellreguard';
+      await sendText(NOTIFICATION_PHONE,
+        `✅ *Reserva confirmada*\n\n` +
+        `🏠 ${nombreAloj}\n` +
+        `📅 ${cd.fecha}\n` +
+        `👥 ${cd.personas || '?'} personas\n` +
+        `📞 ${clientePhone}${cd.nombre_cliente ? ` (${cd.nombre_cliente})` : ''}\n\n` +
+        `Esa fecha ya está bloqueada — el bot no la ofrecerá a nadie más.`,
+        deviceId
+      );
+      await log(clientePhone, 'reserva_confirmada', { alojamiento: cd.alojamiento, fecha: cd.fecha });
+    } else if (r.error === 'ya_existe_reserva_esa_fecha') {
+      await sendText(NOTIFICATION_PHONE,
+        `⚠️ Ya hay una reserva confirmada para *${cd.alojamiento}* el *${cd.fecha}*.\n` +
+        `No he creado otra. Revísalo en la tabla \`reservas\` de Supabase si crees que es un error.`,
+        deviceId
+      );
+    } else {
+      await sendText(NOTIFICATION_PHONE,
+        `❌ Error creando reserva: ${r.error}\n${r.detalle || ''}`,
+        deviceId
+      );
+    }
+    return true;
+  }
+
+  // No es un comando reconocido
+  return false;
 }
 
 export const config = {

@@ -79,11 +79,11 @@ async function processWebhook(body) {
         await log(targetPhone, 'self_media_ignored', { msgType: msg.type || 'no-text' });
         return;
       }
-      // Comando de reactivación: la palabra "compañero" en el texto
-      const normalizedFromMe = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-      if (/\bcompanero(s)?\b/.test(normalizedFromMe)) {
+      // Comando de reactivación: mensaje EXACTAMENTE igual a "." (un punto solo).
+      // Cuidado: si escribes un "." solo en el chat del cliente, el bot se reactiva.
+      if (text.trim() === '.') {
         await updateConversation(targetPhone, { paused_until: null }).catch(() => {});
-        await log(targetPhone, 'manual_reactivate', { trigger: text.slice(0, 80) });
+        await log(targetPhone, 'manual_reactivate', { trigger: '.' });
         return;
       }
       // Pausa de 2 horas (o conserva si ya hay más larga) + guarda en historial
@@ -277,15 +277,15 @@ async function handleOutgoingMessage(body) {
     return;
   }
 
-  // COMANDO DE REACTIVACIÓN: si Diego escribe un mensaje que contiene la
-  // palabra "compañero" (o "companero" sin tilde), limpia la pausa y deja al
-  // bot volver a operar.
-  const normalizedOut = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  if (/\bcompanero(s)?\b/.test(normalizedOut)) {
+  // COMANDO DE REACTIVACIÓN: si Diego escribe un mensaje EXACTAMENTE igual a
+  // "." (un punto solo, sin nada más), limpia la pausa y deja al bot volver
+  // a operar. Cuidado: cualquier mensaje "." reactiva, así que no enviar
+  // un punto solo por accidente.
+  if (text.trim() === '.') {
     await updateConversation(targetPhone, {
       paused_until: null
     }).catch(() => {});
-    await log(targetPhone, 'manual_reactivate', { trigger: text.slice(0, 80) });
+    await log(targetPhone, 'manual_reactivate', { trigger: '.' });
     return;
   }
 

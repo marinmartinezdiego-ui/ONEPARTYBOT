@@ -25,8 +25,9 @@
     "motos_agua": {
       "nombre": "Motos de Agua",
       "suplemento": 25,
-      "notas": "40 minutos. Se cogen en pareja. Si número impar, se necesita una moto extra.",
-      "calculo_especial": "motos_agua"
+      "notas": "40 minutos. Se cogen en pareja. Si el grupo es impar sobra una plaza, que se cobra entera (45€) como suplemento de grupo.",
+      "calculo_especial": "motos_agua",
+      "coste_plaza_vacia": 45
     }
   },
   "comidas": {
@@ -47,9 +48,13 @@
   "gastos_gestion_por_persona": 6,
   "viernes_gratis_todos_packs": [
     "Chupitos de bienvenida",
-    "2x1 Copas Pubs",
-    "Entrada Eclipse"
+    "2x1 Copas Pubs"
   ],
+  "_suspendido_temporalmente": {
+    "nota": "Hasta nuevo aviso. Para reactivar: volver a añadir 'Entrada Eclipse' a viernes_gratis_todos_packs, descomentar la linea en lib/pricing.js y quitar el bloque SERVICIOS SUSPENDIDOS de lib/prompt.js.",
+    "viernes_gratis": ["Entrada Eclipse"],
+    "actividades": ["motos_agua", "banana", "kayak", "padel_surf", "velero"]
+  },
   "pool_party_meses": [5, 6, 7, 8, 9],
   "menus_imagenes": {
     "packs": "https://onepartybot.vercel.app/images/packs.jpg",

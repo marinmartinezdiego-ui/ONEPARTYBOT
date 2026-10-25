@@ -1,49 +1,135 @@
 {
   "actividades": {
-    "escape_room": { "nombre": "Escape Room", "suplemento": 0, "notas": "Junto centro comercial, necesita coche" },
-    "archery_tag": { "nombre": "Archery Tag", "suplemento": 0 },
-    "tiro_arco": { "nombre": "Tiro con Arco", "suplemento": 0 },
-    "lucha_sumo": { "nombre": "Lucha Sumo", "suplemento": 0 },
-    "futbolin_humano": { "nombre": "Futbolín Humano", "suplemento": 0 },
-    "sumo_hinchable": { "nombre": "Sumo Hinchable", "suplemento": 0 },
-    "velero": { "nombre": "Velero Deportivo", "suplemento": 0 },
-    "kayak": { "nombre": "Kayak", "suplemento": 0 },
-    "padel_surf": { "nombre": "Padel Surf", "suplemento": 0 },
-    "spa": { "nombre": "Spa", "suplemento": 10 },
-    "bubble": { "nombre": "Bubble", "suplemento": 5 },
-    "karts": { "nombre": "Karts", "suplemento": 5 },
-    "paintball": { "nombre": "Paintball", "suplemento": 5 },
-    "banana": { "nombre": "Banana", "suplemento": 5 },
-    "humor_amarillo": { "nombre": "Humor Amarillo", "suplemento": 8, "notas": "Actividades con agua y minijuegos, muy completa" },
+    "escape_room": {
+      "nombre": "Escape Room",
+      "suplemento": 0,
+      "notas": "Junto centro comercial, necesita coche"
+    },
+    "archery_tag": {
+      "nombre": "Archery Tag",
+      "suplemento": 0
+    },
+    "tiro_arco": {
+      "nombre": "Tiro con Arco",
+      "suplemento": 0
+    },
+    "lucha_sumo": {
+      "nombre": "Lucha Sumo",
+      "suplemento": 0
+    },
+    "futbolin_humano": {
+      "nombre": "Futbolín Humano",
+      "suplemento": 0
+    },
+    "sumo_hinchable": {
+      "nombre": "Sumo Hinchable",
+      "suplemento": 0
+    },
+    "spa": {
+      "nombre": "Spa",
+      "suplemento": 10
+    },
+    "bubble": {
+      "nombre": "Bubble",
+      "suplemento": 5
+    },
+    "karts": {
+      "nombre": "Karts",
+      "suplemento": 5
+    },
+    "paintball": {
+      "nombre": "Paintball",
+      "suplemento": 5
+    },
+    "banana": {
+      "nombre": "Banana",
+      "suplemento": 5
+    },
+    "humor_amarillo": {
+      "nombre": "Humor Amarillo",
+      "suplemento": 8,
+      "notas": "Actividades con agua y minijuegos, muy completa"
+    },
     "barco": {
       "nombre": "Barco",
       "suplemento": 15,
-      "notas": "Solo sábados. 1h30min. 100 plazas. Con otros grupos. Música.",
-      "horarios": ["11h", "12:30h", "14h (incluye comida)"]
+      "notas": "Solo sábados. 1h30min. 100 plazas. Con otros grupos. Música. Horarios: 11h o 12:30h.",
+      "horarios": [
+        "11h",
+        "12:30h"
+      ]
     },
-    "caballo": { "nombre": "Paseo a Caballo", "suplemento": 30 },
+    "caballo": {
+      "nombre": "Paseo a Caballo",
+      "suplemento": 30
+    },
     "motos_agua": {
       "nombre": "Motos de Agua",
       "suplemento": 25,
       "notas": "40 minutos. Se cogen en pareja. Si el grupo es impar sobra una plaza, que se cobra entera (45€) como suplemento de grupo.",
       "calculo_especial": "motos_agua",
       "coste_plaza_vacia": 45
+    },
+    "barco_14": {
+      "nombre": "Barco 14h",
+      "suplemento": 15,
+      "notas": "Solo sábados a las 14h. 1h30min. 100 plazas. INCLUYE LA COMIDA del pack a bordo, no hace falta elegir restaurante de comida.",
+      "incluye_comida": true
+    },
+    "multi_acuatica": {
+      "nombre": "Multi acuática",
+      "suplemento": 0,
+      "notas": "Engloba Kayak, Padel Surf y Velero. Solo disponible en verano."
     }
   },
   "comidas": {
-    "meraki": { "nombre": "Meraki", "suplemento": 0, "notas": "Hamburguesa en el puerto" },
-    "la_finca": { "nombre": "La Finca", "suplemento": 5, "notas": "Barra libre cerveza/sangría + 1 copa. Pool Party y Fiesta Espuma desde mayo en VayaTela" },
-    "chiringuito": { "nombre": "Chiringuito Playa", "suplemento": 15, "notas": "Paella + entrantes frente al mar. 1 bebida + 1 copa. Tardeo con descuento" }
+    "meraki": {
+      "nombre": "Meraki",
+      "suplemento": 0,
+      "notas": "Hamburguesa en el puerto"
+    },
+    "la_finca": {
+      "nombre": "La Finca",
+      "suplemento": 5,
+      "notas": "Barra libre cerveza/sangría + 1 copa. Pool Party y Fiesta Espuma desde mayo en VayaTela"
+    },
+    "chiringuito": {
+      "nombre": "Chiringuito Playa",
+      "suplemento": 15,
+      "notas": "Paella + entrantes frente al mar. 1 bebida + 1 copa. Tardeo con descuento"
+    }
   },
   "cenas": {
-    "meraki": { "nombre": "Meraki", "suplemento": 0 },
-    "bestias_21": { "nombre": "Los Bestias 21h", "suplemento": 5, "notas": "Animación + barra libre. Hasta 22:30" },
-    "bestias_23": { "nombre": "Los Bestias 23h", "suplemento": 9, "notas": "Animación + barra libre + 1 copa" }
+    "meraki": {
+      "nombre": "Meraki",
+      "suplemento": 0
+    },
+    "bestias_21": {
+      "nombre": "Los Bestias 21h",
+      "suplemento": 5,
+      "notas": "Animación + barra libre. Hasta 22:30"
+    },
+    "bestias_23": {
+      "nombre": "Los Bestias 23h",
+      "suplemento": 9,
+      "notas": "Animación + barra libre + 1 copa"
+    }
   },
   "extras": {
-    "copas_disco": { "nombre": "Entrada + 2 copas disco sábado", "suplemento": 14, "notas": "Solo necesario para Mix / A Full / variantes. Basic y Premium ya la incluyen." },
-    "mesa_vip": { "nombre": "Mesa VIP en discoteca", "suplemento": 25 },
-    "segunda_actividad_recargo": { "nombre": "Recargo segunda actividad", "suplemento": 20, "notas": "Sumar al precio de la actividad elegida" }
+    "copas_disco": {
+      "nombre": "Entrada + 2 copas disco sábado",
+      "suplemento": 14,
+      "notas": "Solo necesario para Mix / A Full / variantes. Basic y Premium ya la incluyen."
+    },
+    "mesa_vip": {
+      "nombre": "Mesa VIP en discoteca",
+      "suplemento": 25
+    },
+    "segunda_actividad_recargo": {
+      "nombre": "Recargo segunda actividad",
+      "suplemento": 20,
+      "notas": "Sumar al precio de la actividad elegida"
+    }
   },
   "gastos_gestion_por_persona": 6,
   "viernes_gratis_todos_packs": [
@@ -51,11 +137,23 @@
     "2x1 Copas Pubs"
   ],
   "_suspendido_temporalmente": {
-    "nota": "Hasta nuevo aviso. Para reactivar: volver a añadir 'Entrada Eclipse' a viernes_gratis_todos_packs, descomentar la linea en lib/pricing.js y quitar el bloque SERVICIOS SUSPENDIDOS de lib/prompt.js.",
-    "viernes_gratis": ["Entrada Eclipse"],
-    "actividades": ["motos_agua", "banana", "kayak", "padel_surf", "velero"]
+    "nota": "Hasta nuevo aviso. Para reactivar: volver a añadir 'Entrada Eclipse' a viernes_gratis_todos_packs, descomentar la linea en lib/pricing.js y quitar el bloque SERVICIOS SUSPENDIDOS de lib/prompt.js. Multi acuática se reactiva automáticamente en verano.",
+    "viernes_gratis": [
+      "Entrada Eclipse"
+    ],
+    "actividades": [
+      "banana",
+      "motos_agua",
+      "multi_acuatica"
+    ]
   },
-  "pool_party_meses": [5, 6, 7, 8, 9],
+  "pool_party_meses": [
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
   "menus_imagenes": {
     "packs": "https://onepartybot.vercel.app/images/packs.jpg",
     "comida": "https://onepartybot.vercel.app/images/menu-comida.jpg",

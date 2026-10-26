@@ -72,6 +72,20 @@
       "Descuento especial pubs"
     ]
   },
+  "afull_sin_cena": {
+    "id": "afull_sin_cena",
+    "nombre": "A Full sin cena",
+    "precio": 50,
+    "incluye": [
+      "Gynkana del novi@",
+      "1 actividad a elegir",
+      "Comida en chiringuito",
+      "Tardeo con descuentos",
+      "Entrada Eclipse viernes gratis",
+      "2 copas gratis novi@ + organizador",
+      "Descuento especial pubs"
+    ]
+  },
   "premium": {
     "id": "premium",
     "nombre": "Premium",

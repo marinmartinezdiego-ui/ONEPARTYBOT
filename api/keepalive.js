@@ -75,7 +75,7 @@ export default async function handler(req, res) {
     const tablas = [
       ['conversations', 'phone'],
       ['bot_logs', 'phone'],
-      ['reservas', 'id'],
+      ['keepalive', 'id'],   // 'reservas' no existe en este proyecto
       ['ignored_phones', 'phone'],
     ];
 

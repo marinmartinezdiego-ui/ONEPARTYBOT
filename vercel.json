@@ -1,6 +1,8 @@
 {
   "version": 2,
-  "regions": ["fra1"],
+  "regions": [
+    "fra1"
+  ],
   "functions": {
     "api/webhook.js": {
       "maxDuration": 30
@@ -8,5 +10,15 @@
     "api/worker.js": {
       "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/keepalive",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/keepalive",
+      "schedule": "0 20 * * *"
+    }
+  ]
 }

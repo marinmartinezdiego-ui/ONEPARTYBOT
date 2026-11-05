@@ -15,12 +15,20 @@
 // ============================================================
 
 async function consultaSupabase(url, key, tabla, columna) {
-  const r = await fetch(`${url}/rest/v1/${tabla}?select=${columna}&limit=1`, {
-    headers: { apikey: key, Authorization: `Bearer ${key}` },
-  });
-  if (!r.ok) throw new Error(`${tabla} -> ${r.status}: ${(await r.text()).slice(0, 100)}`);
-  await r.json().catch(() => null);   // nos aseguramos de consumir la respuesta
-  return true;
+  const destino = `${url.replace(/\/+$/, '')}/rest/v1/${tabla}?select=${columna}&limit=1`;
+  try {
+    const r = await fetch(destino, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    });
+    if (!r.ok) throw new Error(`${tabla} -> HTTP ${r.status}: ${(await r.text()).slice(0, 120)}`);
+    await r.json().catch(() => null);   // consumimos la respuesta
+    return true;
+  } catch (e) {
+    // Si no llega a conectar, Node da "fetch failed" a secas. El motivo real
+    // viene en e.cause, y sin eso no hay forma de saber qué pasa.
+    const causa = e.cause ? (e.cause.code || e.cause.message || String(e.cause)) : '';
+    throw new Error(`${tabla} -> ${e.message}${causa ? ` [${causa}]` : ''}`);
+  }
 }
 
 export default async function handler(req, res) {
@@ -29,7 +37,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'no autorizado' });
   }
 
-  const out = { fecha: new Date().toISOString(), upstash: null, supabase: null, consultas: 0 };
+  const out = { fecha: new Date().toISOString(), upstash: null, supabase: null, supabase_host: null, consultas: 0, escritura: null };
 
   // ── Upstash Redis ──
   try {
@@ -59,6 +67,11 @@ export default async function handler(req, res) {
     const key = process.env.SUPABASE_KEY;
     if (!url || !key) throw new Error('faltan SUPABASE_URL / SUPABASE_KEY');
 
+    // Dejamos ver a dónde apunta la variable, para cazar URLs mal puestas.
+    // Solo el host: la clave no se enseña nunca.
+    try { out.supabase_host = new URL(url).host; }
+    catch { out.supabase_host = `URL MAL FORMADA: ${String(url).slice(0, 60)}`; }
+
     const tablas = [
       ['conversations', 'phone'],
       ['bot_logs', 'phone'],
@@ -80,6 +93,28 @@ export default async function handler(req, res) {
     // Con que una tabla responda, la base de datos está viva y contactada.
     if (out.consultas === 0) throw new Error(fallos.join(' | ') || 'ninguna consulta salió');
     out.supabase = fallos.length ? `ok (${out.consultas}/${tablas.length}, fallaron: ${fallos.length})` : 'ok';
+
+    // Además de leer, escribimos. Supabase habla de "peticiones", no de
+    // escrituras, pero no lo garantiza en ninguna parte, así que por si acaso.
+    // Si la tabla no existe o la clave no tiene permiso, se avisa pero NO se
+    // da por fallado el keepalive: las lecturas ya han tocado la base de datos.
+    try {
+      const w = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/keepalive`, {
+        method: 'POST',
+        headers: {
+          apikey: key,
+          Authorization: `Bearer ${key}`,
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates,return=minimal',
+        },
+        body: JSON.stringify({ id: 1, updated_at: new Date().toISOString() }),
+      });
+      if (!w.ok) throw new Error(`HTTP ${w.status}: ${(await w.text()).slice(0, 120)}`);
+      out.escritura = 'ok';
+    } catch (e) {
+      const causa = e.cause ? (e.cause.code || e.cause.message || String(e.cause)) : '';
+      out.escritura = `no (${e.message}${causa ? ` [${causa}]` : ''})`;
+    }
   } catch (e) {
     out.supabase = `ERROR: ${e.message}`;
   }

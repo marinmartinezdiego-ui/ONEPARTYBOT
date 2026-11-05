@@ -92,7 +92,9 @@ export default async function handler(req, res) {
 
     // Con que una tabla responda, la base de datos está viva y contactada.
     if (out.consultas === 0) throw new Error(fallos.join(' | ') || 'ninguna consulta salió');
-    out.supabase = fallos.length ? `ok (${out.consultas}/${tablas.length}, fallaron: ${fallos.length})` : 'ok';
+    out.supabase = fallos.length
+      ? `ok (${out.consultas}/${tablas.length}) — fallaron: ${fallos.join(' | ')}`
+      : 'ok';
 
     // Además de leer, escribimos. Supabase habla de "peticiones", no de
     // escrituras, pero no lo garantiza en ninguna parte, así que por si acaso.
